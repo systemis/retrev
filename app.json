@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "instant-retrocaptured-",
+    "name": "Faded",
     "slug": "instant-retrocaptured-",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "instantretrocaptured",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.amorriscodes.instant-retrocaptured-"
@@ -32,7 +32,22 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#F6F1E7"
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Faded uses your camera to capture photos."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Faded saves your filtered photos to your library.",
+          "savePhotosPermission": "Faded saves your filtered photos to your library.",
+          "isAccessMediaLocationEnabled": false
         }
       ]
     ],
