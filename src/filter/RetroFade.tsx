@@ -13,7 +13,7 @@ import {
  * Each uniform maps to exactly ONE visual move. Runs on the GPU.
  * Requires a dev build (react-native-skia is a native module; not Expo Go).
  *
- * `source` is exported so the headless pipeline (applyFilter.ts) can feed it an
+ * `source` is exported so the headless pipeline (renderStamp.ts) can feed it an
  * image shader imperatively; `RetroFadeImage` is the declarative live preview.
  */
 export const source = Skia.RuntimeEffect.Make(`

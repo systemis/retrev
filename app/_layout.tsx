@@ -13,7 +13,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DATABASE_NAME, migrateDb } from "@/src/db";
-import { ensurePhotosDir } from "@/src/lib/files";
+import { ensureOriginalsDir, ensurePhotosDir } from "@/src/lib/files";
 import { colors } from "@/src/theme";
 
 export {
@@ -37,9 +37,10 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
-  // Ensure the on-disk photos directory exists before any capture flow runs.
+  // Ensure the on-disk photo directories exist before any capture flow runs.
   useEffect(() => {
     ensurePhotosDir();
+    ensureOriginalsDir();
   }, []);
 
   useEffect(() => {

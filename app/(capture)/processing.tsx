@@ -3,7 +3,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { DevelopingAnimation } from "@/src/components/DevelopingAnimation";
-import { applyFilter } from "@/src/filter/applyFilter";
+import { createStampFromCapture } from "@/src/design/createStamp";
 import { haptics } from "@/src/lib/haptics";
 import { usePhotoStore } from "@/src/store/usePhotoStore";
 import { MIN_DEVELOP_MS } from "@/src/theme";
@@ -31,7 +31,7 @@ export default function ProcessingScreen() {
       try {
         if (!rawUri) throw new Error("Missing capture");
         const [result] = await Promise.all([
-          applyFilter(rawUri),
+          createStampFromCapture(rawUri),
           delay(MIN_DEVELOP_MS),
         ]);
         await add(db, result);
