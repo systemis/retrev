@@ -1,12 +1,6 @@
+import { Fill, Path, Shader, Skia } from "@shopify/react-native-skia";
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import {
-  Canvas,
-  Fill,
-  Path,
-  Shader,
-  Skia,
-} from "@shopify/react-native-skia";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -15,8 +9,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { colors, radius, shadows, spacing, type, useReduceMotion } from "@/src/theme";
-import { PerforatedEdge } from "./PerforatedEdge";
+import { colors, type, useReduceMotion } from "@/src/theme";
+import { StampPaper } from "./StampPaper";
+import { stampCanvasHeight, stampInnerRect, STAMP_PAD, STAMP_TOOTH } from "./stampPath";
 
 /** Soft warm grain that resolves into a faint image as `reveal` → 1 (dev-plan §9.3). */
 const grain = Skia.RuntimeEffect.Make(`
@@ -43,16 +38,19 @@ half4 main(float2 xy) {
 `)!;
 
 /**
- * The Processing-screen loader: a photo surfacing on paper, a sweeping accent
- * progress arc, and a cycling DEVELOPING… label, all gently pulsing (dev-plan §9.3).
+ * The Processing-screen loader: a photo surfacing on stamp paper, a sweeping
+ * accent progress arc, and a cycling DEVELOPING… label, gently pulsing (§9.3).
  */
 export function DevelopingAnimation() {
   const reduceMotion = useReduceMotion();
   const { width: screenW } = useWindowDimensions();
 
   const paperW = Math.min(240, screenW * 0.62);
-  const photoW = paperW - 12;
-  const photoH = photoW * (4 / 3);
+  const height = stampCanvasHeight(paperW);
+  const inner = useMemo(
+    () => stampInnerRect(paperW, height),
+    [paperW, height],
+  );
 
   const time = useSharedValue(0);
   const reveal = useSharedValue(reduceMotion ? 0.7 : 0);
@@ -80,47 +78,48 @@ export function DevelopingAnimation() {
   }, [reduceMotion, time, reveal, sweep, pulse]);
 
   const uniforms = useDerivedValue(() => ({
-    resolution: [photoW, photoH],
+    resolution: [paperW, height],
     time: time.value,
     reveal: reveal.value,
   }));
 
   const arcPath = useMemo(() => {
     const p = Skia.Path.Make();
-    const r = Math.min(photoW, photoH) * 0.26;
-    p.addCircle(photoW / 2, photoH / 2, r);
+    const cx = inner.x + inner.width / 2;
+    const cy = inner.y + inner.height / 2;
+    const r = Math.min(inner.width, inner.height) * 0.26;
+    p.addCircle(cx, cy, r);
     return p;
-  }, [photoW, photoH]);
+  }, [inner]);
 
   const arcEnd = useDerivedValue(() => sweep.value);
-
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 0.98 + 0.02 * pulse.value }],
   }));
-
   const label = useCyclingLabel(reduceMotion);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.paper, shadows.stamp, { width: paperW }, pulseStyle]}>
-        <View style={[styles.photoWrap, { width: photoW, height: photoH }]}>
-          <Canvas style={{ width: photoW, height: photoH }}>
-            <Fill>
-              <Shader source={grain} uniforms={uniforms} />
-            </Fill>
-            <Path
-              path={arcPath}
-              start={0}
-              end={arcEnd}
-              style="stroke"
-              strokeWidth={4}
-              strokeCap="round"
-              color={colors.accent}
-            />
-          </Canvas>
-        </View>
+      <Animated.View style={[{ width: paperW, height }, pulseStyle]}>
+        <StampPaper width={paperW} height={height}>
+          {() => (
+            <>
+              <Fill>
+                <Shader source={grain} uniforms={uniforms} />
+              </Fill>
+              <Path
+                path={arcPath}
+                start={0}
+                end={arcEnd}
+                style="stroke"
+                strokeWidth={4}
+                strokeCap="round"
+                color={colors.accent}
+              />
+            </>
+          )}
+        </StampPaper>
         <Text style={[type.monoStamp, styles.label]}>{label}</Text>
-        <PerforatedEdge width={paperW - 8} />
       </Animated.View>
     </View>
   );
@@ -144,22 +143,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.bg,
   },
-  paper: {
-    backgroundColor: colors.stampPaper,
-    borderRadius: radius.card,
-    padding: 6,
-    paddingBottom: spacing.sm,
-    alignItems: "center",
-  },
-  photoWrap: {
-    borderRadius: 8,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   label: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: STAMP_PAD + STAMP_TOOTH,
     textAlign: "center",
-    paddingTop: spacing.sm,
     letterSpacing: 2,
   },
 });

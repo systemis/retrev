@@ -1,25 +1,19 @@
+import { Fill, Image as SkiaImage, useImage } from "@shopify/react-native-skia";
 import { memo, useEffect } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import {
-  colors,
-  radius,
-  shadows,
-  softSpring,
-  spacing,
-  spring,
-  type,
-} from "@/src/theme";
-import { PerforatedEdge } from "./PerforatedEdge";
+import { colors, softSpring, spring, type } from "@/src/theme";
+import { StampPaper } from "./StampPaper";
+import { stampCanvasHeight, STAMP_PAD, STAMP_TOOTH } from "./stampPath";
 
 type Props = {
   uri: string;
   dateLabel: string;
-  /** Column width from the grid; the paper sizes to this. */
+  /** Column width from the grid; the stamp (incl. shadow pad) sizes to this. */
   width: number;
   onPress?: () => void;
   onLongPress?: () => void;
@@ -29,9 +23,9 @@ type Props = {
 };
 
 /**
- * The signature UI element: a filtered photo styled as a postage stamp with a
- * perforated bottom edge, a mono date label and a soft warm shadow (dev-plan §6.1).
- * Memoized so FlashList recycling stays cheap at 100+ items.
+ * The signature UI element: a filtered photo rendered as a realistic postage
+ * stamp — white paper, perforated on all four edges, soft warm shadow, mono
+ * date label (dev-plan §6.1). Memoized so FlashList recycling stays cheap.
  */
 function StampCardImpl({
   uri,
@@ -42,6 +36,9 @@ function StampCardImpl({
   dropIn = false,
   reduceMotion = false,
 }: Props) {
+  const image = useImage(uri);
+  const height = stampCanvasHeight(width);
+
   const press = useSharedValue(1);
   const animateDrop = dropIn && !reduceMotion;
   const drop = useSharedValue(animateDrop ? 0 : 1);
@@ -73,10 +70,24 @@ function StampCardImpl({
           press.value = withSpring(1, spring);
         }}
       >
-        <View style={[styles.paper, shadows.stamp]}>
-          <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
+        <View style={{ width, height }}>
+          <StampPaper width={width} height={height}>
+            {(rect) =>
+              image ? (
+                <SkiaImage
+                  image={image}
+                  x={rect.x}
+                  y={rect.y}
+                  width={rect.width}
+                  height={rect.height}
+                  fit="cover"
+                />
+              ) : (
+                <Fill color={colors.surfacePressed} />
+              )
+            }
+          </StampPaper>
           <Text style={[type.monoStamp, styles.label]}>{dateLabel}</Text>
-          <PerforatedEdge width={width - 8} />
         </View>
       </Pressable>
     </Animated.View>
@@ -86,23 +97,11 @@ function StampCardImpl({
 export const StampCard = memo(StampCardImpl);
 
 const styles = StyleSheet.create({
-  paper: {
-    backgroundColor: colors.stampPaper,
-    borderRadius: radius.card,
-    padding: 6,
-    paddingBottom: spacing.xs,
-  },
-  photo: {
-    width: "100%",
-    aspectRatio: 3 / 4,
-    borderRadius: 8,
-    backgroundColor: colors.surfacePressed,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   label: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: STAMP_PAD + STAMP_TOOTH + 2,
     textAlign: "center",
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xs,
   },
 });

@@ -7,19 +7,35 @@ import { stampDate } from "@/src/lib/date";
 import { haptics } from "@/src/lib/haptics";
 import { usePhotoStore } from "@/src/store/usePhotoStore";
 import { colors, layout, spacing, type, useReduceMotion } from "@/src/theme";
+import MaskedView from "@react-native-masked-view/masked-view";
 import { FlashList } from "@shopify/flash-list";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useCallback, useEffect } from "react";
 import {
   Alert,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  Extrapolation,
+  FadeIn,
+  interpolate,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+/** Height of the header content below the status bar. */
+const HEADER_CONTENT_H = 56;
 
 export default function LibraryScreen() {
   const db = useSQLiteContext();
@@ -34,6 +50,8 @@ export default function LibraryScreen() {
   const load = usePhotoStore((s) => s.load);
   const remove = usePhotoStore((s) => s.remove);
   const clearNewest = usePhotoStore((s) => s.clearNewest);
+
+  const scrollY = useSharedValue(0);
 
   useEffect(() => {
     load(db);
@@ -50,6 +68,22 @@ export default function LibraryScreen() {
 
   const columnWidth = (screenW - layout.screenPadding * 2) / 2;
   const cardWidth = columnWidth - layout.gridGutter;
+  const headerHeight = insets.top + HEADER_CONTENT_H;
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.value = e.nativeEvent.contentOffset.y;
+    },
+    [scrollY],
+  );
+
+  // Frosted header: blur intensity + hairline appear as content scrolls under it.
+  const blurProps = useAnimatedProps(() => ({
+    intensity: interpolate(scrollY.value, [0, 48], [0, 28], Extrapolation.CLAMP),
+  }));
+  const headerFillStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 28], [0, 1], Extrapolation.CLAMP),
+  }));
 
   const confirmDelete = useCallback(
     (record: PhotoRecord) => {
@@ -88,19 +122,6 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={{ paddingTop: insets.top }}>
-        <ScreenHeader
-          title="Faded"
-          right={
-            photos.length > 0 ? (
-              <Text style={type.caption}>
-                {photos.length} {photos.length === 1 ? "frame" : "frames"}
-              </Text>
-            ) : null
-          }
-        />
-      </View>
-
       {showEmpty ? (
         <EmptyLibrary />
       ) : (
@@ -113,11 +134,58 @@ export default function LibraryScreen() {
             numColumns={2}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingHorizontal: layout.screenPadding,
+              paddingTop: headerHeight + spacing.sm,
+              paddingBottom: 140,
+            }}
             showsVerticalScrollIndicator={false}
           />
         </Animated.View>
       )}
+
+      {/* Frosted header that dissolves into the list — the blur fades to
+          transparent at the bottom so there's no hard seam with the content. */}
+      <View
+        style={[styles.headerOverlay, { height: headerHeight }]}
+        pointerEvents="box-none"
+      >
+        <MaskedView
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+          maskElement={
+            <LinearGradient
+              style={StyleSheet.absoluteFill}
+              colors={["black", "black", "transparent"] as const}
+              locations={[0, 0.6, 1] as const}
+            />
+          }
+        >
+          <AnimatedBlurView
+            animatedProps={blurProps}
+            tint="light"
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+          <Animated.View
+            style={[StyleSheet.absoluteFill, styles.headerWash, headerFillStyle]}
+          />
+        </MaskedView>
+        <View style={{ paddingTop: insets.top }}>
+          <ScreenHeader
+            title="Faded"
+            right={
+              photos.length > 0 ? (
+                <Text style={type.caption}>
+                  {photos.length} {photos.length === 1 ? "frame" : "frames"}
+                </Text>
+              ) : null
+            }
+          />
+        </View>
+      </View>
 
       <View
         style={[styles.fab, { bottom: insets.bottom + spacing.lg }]}
@@ -137,14 +205,18 @@ const styles = StyleSheet.create({
   listWrap: {
     flex: 1,
   },
-  listContent: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.sm,
-    paddingBottom: 140,
-  },
   cell: {
     alignItems: "center",
     marginBottom: layout.gridGutter,
+  },
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  headerWash: {
+    backgroundColor: "rgba(255,255,255,0.6)",
   },
   fab: {
     position: "absolute",

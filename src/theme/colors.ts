@@ -5,8 +5,8 @@
  * No component should hard-code a color — always read from here.
  */
 export const colors = {
-  /** App background — warm cream album page. */
-  bg: "#F6F1E7",
+  /** App background — clean white. */
+  bg: "#FFFFFF",
   /** Cards, sheets — near-white, faintly warm. */
   surface: "#FFFDF8",
   /** Pressed/hover state on surfaces. */
@@ -23,8 +23,8 @@ export const colors = {
   accentPressed: "#A8552E",
   /** Stamp border/paper — pure white so stamps pop against the cream page. */
   stampPaper: "#FFFFFF",
-  /** Warm soft shadow color for stamp/FAB elevation. */
-  shadow: "rgba(60, 44, 24, 0.16)",
+  /** Warm soft shadow color for stamp/FAB elevation (stronger, to read on white). */
+  shadow: "rgba(60, 44, 24, 0.22)",
   /** Solid shadow color (RN shadow props take an opaque color + separate opacity). */
   shadowSolid: "#3C2C18",
 } as const;
