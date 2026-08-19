@@ -8,18 +8,22 @@ import {
 } from "@shopify/react-native-skia";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import { PAPER_COLORS } from "@/src/design/frame";
+import { DEFAULT_FRAME } from "@/src/design/presets";
+import type { FrameConfig } from "@/src/design/types";
 import { colors } from "@/src/theme";
 import {
   type InnerRect,
   makeStampPath,
   STAMP_PAD,
-  STAMP_TOOTH,
   stampInnerRect,
 } from "./stampPath";
 
 type Props = {
   width: number;
   height: number;
+  /** Paper tint, perforation size, border — defaults to the classic white stamp. */
+  frame?: FrameConfig;
   /** Extra white space reserved at the bottom for a date label. */
   labelReserve?: number;
   /** Draw a hairline border around the photo. */
@@ -37,20 +41,22 @@ type Props = {
 export function StampPaper({
   width,
   height,
+  frame = DEFAULT_FRAME,
   labelReserve = 16,
   bordered = true,
   children,
 }: Props) {
   const stampW = width - 2 * STAMP_PAD;
   const stampH = height - 2 * STAMP_PAD;
+  const { tooth, border, paper } = frame;
 
   const path = useMemo(
-    () => makeStampPath(stampW, stampH, STAMP_TOOTH),
-    [stampW, stampH],
+    () => makeStampPath(stampW, stampH, tooth),
+    [stampW, stampH, tooth],
   );
   const inner = useMemo(
-    () => stampInnerRect(width, height, labelReserve),
-    [width, height, labelReserve],
+    () => stampInnerRect(width, height, labelReserve, tooth, border),
+    [width, height, labelReserve, tooth, border],
   );
   const clip = useMemo(
     () =>
@@ -65,7 +71,7 @@ export function StampPaper({
   return (
     <Canvas style={{ width, height }}>
       <Group transform={[{ translateX: STAMP_PAD }, { translateY: STAMP_PAD }]}>
-        <Path path={path} color={colors.stampPaper}>
+        <Path path={path} color={PAPER_COLORS[paper]}>
           <Shadow dx={0} dy={4} blur={8} color={colors.shadow} />
         </Path>
       </Group>

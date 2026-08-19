@@ -8,6 +8,7 @@ import {
 import type { StampDesign } from "@/src/design/types";
 import { STAMP_PHOTO_ASPECT } from "@/src/design/types";
 import { writeRenderedFile } from "@/src/lib/files";
+import { isFontKey, loadTypeface } from "@/src/text/fonts";
 import { retroFadeUniforms, source } from "./RetroFade";
 
 /** Cap the long edge of the rendered output to bound memory. */
@@ -80,7 +81,26 @@ export async function renderStamp({
 
   const canvas = surface.getCanvas();
   canvas.drawPaint(paint);
-  // M5: bake design.texts here (Skia.Font + drawText).
+
+  // Bake text layers on top of the graded photo.
+  for (const t of design.texts) {
+    if (!t.content || !isFontKey(t.fontKey)) continue;
+    const typeface = await loadTypeface(t.fontKey);
+    if (!typeface) continue;
+    const sizePx = Math.max(1, t.sizePct * outH);
+    const font = Skia.Font(typeface, sizePx);
+    const width = font.measureText(t.content).width;
+    const alignOffset =
+      t.align === "center" ? width / 2 : t.align === "right" ? width : 0;
+    const cx = t.x * outW;
+    const cy = t.y * outH;
+    const textPaint = Skia.Paint();
+    textPaint.setColor(Skia.Color(t.color));
+    canvas.save();
+    canvas.rotate(t.rotation, cx, cy);
+    canvas.drawText(t.content, cx - alignOffset, cy + sizePx * 0.35, textPaint, font);
+    canvas.restore();
+  }
 
   surface.flush();
   const snapshot = surface.makeImageSnapshot();

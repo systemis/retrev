@@ -30,10 +30,12 @@ export function stampInnerRect(
   width: number,
   height: number,
   labelReserve = 16,
+  tooth = STAMP_TOOTH,
+  border = STAMP_BORDER,
 ): InnerRect {
   const stampW = width - 2 * STAMP_PAD;
   const stampH = height - 2 * STAMP_PAD;
-  const inset = STAMP_TOOTH + STAMP_BORDER;
+  const inset = tooth + border;
   return {
     x: STAMP_PAD + inset,
     y: STAMP_PAD + inset,

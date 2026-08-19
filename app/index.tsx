@@ -107,15 +107,20 @@ export default function LibraryScreen() {
       <View style={[styles.cell, { width: columnWidth }]}>
         <StampCard
           uri={item.uri}
-          dateLabel={stampDate(item.createdAt)}
+          dateLabel={stampDate(item.createdAt, item.design.label.format)}
           width={cardWidth}
+          frame={item.design.frame}
+          showLabel={item.design.label.enabled}
           dropIn={item.id === newestId}
           reduceMotion={reduceMotion}
+          onPress={() =>
+            router.push({ pathname: "/customize", params: { id: item.id } })
+          }
           onLongPress={() => confirmDelete(item)}
         />
       </View>
     ),
-    [columnWidth, cardWidth, newestId, reduceMotion, confirmDelete],
+    [columnWidth, cardWidth, newestId, reduceMotion, confirmDelete, router],
   );
 
   const showEmpty = hydrated && photos.length === 0;

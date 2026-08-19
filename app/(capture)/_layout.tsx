@@ -18,6 +18,7 @@ export default function CaptureLayout() {
       <Stack.Screen name="camera" />
       <Stack.Screen name="processing" />
       <Stack.Screen name="result" />
+      <Stack.Screen name="customize" />
     </Stack>
   );
 }

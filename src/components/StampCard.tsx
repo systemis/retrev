@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import type { FrameConfig } from "@/src/design/types";
 import { colors, softSpring, spring, type } from "@/src/theme";
 import { StampPaper } from "./StampPaper";
 import { stampCanvasHeight, STAMP_PAD, STAMP_TOOTH } from "./stampPath";
@@ -15,6 +16,8 @@ type Props = {
   dateLabel: string;
   /** Column width from the grid; the stamp (incl. shadow pad) sizes to this. */
   width: number;
+  frame?: FrameConfig;
+  showLabel?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
   /** One-time "drop + settle" for a freshly captured stamp (dev-plan §9.1). */
@@ -31,6 +34,8 @@ function StampCardImpl({
   uri,
   dateLabel,
   width,
+  frame,
+  showLabel = true,
   onPress,
   onLongPress,
   dropIn = false,
@@ -71,7 +76,7 @@ function StampCardImpl({
         }}
       >
         <View style={{ width, height }}>
-          <StampPaper width={width} height={height}>
+          <StampPaper width={width} height={height} frame={frame}>
             {(rect) =>
               image ? (
                 <SkiaImage
@@ -87,7 +92,9 @@ function StampCardImpl({
               )
             }
           </StampPaper>
-          <Text style={[type.monoStamp, styles.label]}>{dateLabel}</Text>
+          {showLabel ? (
+            <Text style={[type.monoStamp, styles.label]}>{dateLabel}</Text>
+          ) : null}
         </View>
       </Pressable>
     </Animated.View>

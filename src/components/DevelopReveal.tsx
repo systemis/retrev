@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import type { FrameConfig } from "@/src/design/types";
 import { colors, softSpring, type, useReduceMotion } from "@/src/theme";
 import { StampPaper } from "./StampPaper";
 import { stampCanvasHeight, STAMP_PAD, STAMP_TOOTH } from "./stampPath";
@@ -25,41 +26,49 @@ type Props = {
   /** Stamp (canvas) width. */
   width: number;
   dateLabel: string;
+  frame?: FrameConfig;
+  showLabel?: boolean;
 };
 
 /**
  * Result-screen reveal (dev-plan §9.4): the saved image emerges from a blurred,
- * washed "undeveloped" state to its full faded look, then the perforated stamp
- * frame scales in.
+ * washed "undeveloped" state to its full look, then the perforated stamp frame
+ * scales in.
  */
-export function DevelopReveal({ uri, width, dateLabel }: Props) {
+export function DevelopReveal({
+  uri,
+  width,
+  dateLabel,
+  frame,
+  showLabel = true,
+}: Props) {
   const reduceMotion = useReduceMotion();
   const image = useImage(uri);
   const height = stampCanvasHeight(width);
 
   const reveal = useSharedValue(reduceMotion ? 1 : 0);
-  const frame = useSharedValue(reduceMotion ? 1 : 0);
+  const frameIn = useSharedValue(reduceMotion ? 1 : 0);
 
   useEffect(() => {
     if (reduceMotion) {
       reveal.value = 1;
-      frame.value = 1;
+      frameIn.value = 1;
       return;
     }
     reveal.value = withTiming(1, { duration: 1100, easing: Easing.out(Easing.cubic) });
-    frame.value = withDelay(500, withSpring(1, softSpring));
-  }, [reduceMotion, reveal, frame]);
+    frameIn.value = withDelay(500, withSpring(1, softSpring));
+  }, [reduceMotion, reveal, frameIn]);
 
   const blur = useDerivedValue(() => 16 * (1 - reveal.value));
   const veilOpacity = useDerivedValue(() => 0.8 * (1 - reveal.value));
   const frameStyle = useAnimatedStyle(() => ({
-    opacity: frame.value,
-    transform: [{ scale: 0.9 + 0.1 * frame.value }],
+    opacity: frameIn.value,
+    transform: [{ scale: 0.9 + 0.1 * frameIn.value }],
   }));
 
   return (
     <Animated.View style={[{ width, height }, frameStyle]}>
-      <StampPaper width={width} height={height}>
+      <StampPaper width={width} height={height} frame={frame}>
         {(rect) => (
           <Group>
             {image ? (
@@ -82,7 +91,9 @@ export function DevelopReveal({ uri, width, dateLabel }: Props) {
           </Group>
         )}
       </StampPaper>
-      <Text style={[type.monoStamp, styles.label]}>{dateLabel}</Text>
+      {showLabel ? (
+        <Text style={[type.monoStamp, styles.label]}>{dateLabel}</Text>
+      ) : null}
     </Animated.View>
   );
 }

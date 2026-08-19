@@ -26,18 +26,18 @@ export default function ResultScreen() {
   const { width: screenW } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const storePhotos = usePhotoStore((s) => s.photos);
+  // Read reactively from the store so a re-edit (Customize) reflects on return.
+  const storeRecord = usePhotoStore((s) => s.photos.find((p) => p.id === id));
   const remove = usePhotoStore((s) => s.remove);
-  const [record, setRecord] = useState<PhotoRecord | null>(
-    () => storePhotos.find((p) => p.id === id) ?? null,
-  );
+  const [fallback, setFallback] = useState<PhotoRecord | null>(null);
   const [saved, setSaved] = useState(false);
+  const record = storeRecord ?? fallback;
 
   // Fallback load if the store hasn't caught up (e.g. deep-linked).
   useEffect(() => {
-    if (record || !id) return;
-    getPhoto(db, id).then(setRecord);
-  }, [record, id, db]);
+    if (storeRecord || !id) return;
+    getPhoto(db, id).then(setFallback);
+  }, [storeRecord, id, db]);
 
   const paperW = Math.min(300, screenW * 0.74);
   const dismiss = () => router.dismissAll();
@@ -73,7 +73,9 @@ export default function ResultScreen() {
         <DevelopReveal
           uri={record.uri}
           width={paperW}
-          dateLabel={stampDate(record.createdAt)}
+          dateLabel={stampDate(record.createdAt, record.design.label.format)}
+          frame={record.design.frame}
+          showLabel={record.design.label.enabled}
         />
       </View>
 
@@ -94,6 +96,21 @@ export default function ResultScreen() {
         <Animated.View entering={entering(1)}>
           <Pressable
             accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.secondary,
+              { backgroundColor: pressed ? colors.surfacePressed : colors.surface },
+            ]}
+            onPress={() =>
+              router.push({ pathname: "/customize", params: { id: record.id } })
+            }
+          >
+            <Text style={styles.secondaryText}>Customize</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={entering(2)}>
+          <Pressable
+            accessibilityRole="button"
             disabled={saved}
             style={({ pressed }) => [
               styles.secondary,
@@ -107,7 +124,7 @@ export default function ResultScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={entering(2)}>
+        <Animated.View entering={entering(3)}>
           <Pressable
             accessibilityRole="button"
             style={styles.discard}
